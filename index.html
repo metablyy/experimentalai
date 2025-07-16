@@ -10,61 +10,61 @@
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Simple scrollbar styling */
+        /* Simple scrollbar styling for dark theme */
         #messages::-webkit-scrollbar {
-            width: 6px;
+            width: 8px;
         }
         #messages::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: #1f2937; /* bg-gray-800 */
         }
         #messages::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 3px;
+            background: #4b5563; /* bg-gray-600 */
+            border-radius: 4px;
         }
         #messages::-webkit-scrollbar-thumb:hover {
-            background: #555;
+            background: #6b7280; /* bg-gray-500 */
         }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center h-screen">
 
-    <div class="w-full max-w-md mx-auto bg-white rounded-2xl shadow-2xl flex flex-col h-[90vh]">
+    <div class="w-full max-w-md mx-auto bg-gray-800 rounded-2xl shadow-2xl flex flex-col h-[90vh]">
         <!-- Header -->
-        <div class="p-4 border-b bg-blue-600 text-white rounded-t-2xl shadow-md">
+        <div class="p-4 border-b border-gray-700 bg-blue-700 text-white rounded-t-2xl shadow-md">
             <h1 class="text-2xl font-bold text-center">Firebase Messenger</h1>
             <div class="mt-2 text-center text-sm">
-                <p>Your User ID: <span id="current-user-id" class="font-mono bg-blue-700 px-2 py-1 rounded-md">Loading...</span></p>
-                <button id="copy-id-button" class="mt-1 text-xs bg-white text-blue-600 font-semibold py-1 px-2 rounded-md hover:bg-blue-100 transition-colors">Copy ID</button>
+                <p>Your User ID: <span id="current-user-id" class="font-mono bg-blue-800 px-2 py-1 rounded-md">Loading...</span></p>
+                <button id="copy-id-button" class="mt-2 text-xs bg-gray-200 text-blue-700 font-semibold py-1 px-2 rounded-md hover:bg-gray-300 transition-colors disabled:opacity-50" disabled>Copy ID</button>
             </div>
         </div>
 
         <!-- Recipient Info -->
-        <div class="p-4 border-b">
-             <label for="recipient-id" class="block text-sm font-medium text-gray-700">Recipient's User ID:</label>
+        <div class="p-4 border-b border-gray-700">
+             <label for="recipient-id" class="block text-sm font-medium text-gray-400">Recipient's User ID:</label>
              <div class="mt-1 flex rounded-md shadow-sm">
-                <input type="text" id="recipient-id" class="flex-1 block w-full rounded-none rounded-l-md border-gray-300 px-3 py-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter recipient's ID to start chat">
-                <button id="start-chat-button" class="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-500 hover:bg-gray-100">
+                <input type="text" id="recipient-id" class="flex-1 block w-full rounded-none rounded-l-md bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400 px-3 py-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" placeholder="Loading..." disabled>
+                <button id="start-chat-button" class="inline-flex items-center px-3 py-2 border border-l-0 border-gray-600 rounded-r-md bg-gray-600 text-gray-300 hover:bg-gray-500 disabled:opacity-50" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
                     </svg>
                 </button>
              </div>
-             <p id="chat-status" class="text-xs text-center mt-2 text-green-600 font-semibold"></p>
+             <p id="chat-status" class="text-xs text-center mt-2 text-green-500 font-semibold"></p>
         </div>
 
         <!-- Messages Area -->
-        <div id="messages" class="flex-1 p-4 overflow-y-auto bg-gray-50">
+        <div id="messages" class="flex-1 p-4 overflow-y-auto bg-gray-900 flex flex-col">
             <!-- Messages will be dynamically added here -->
-             <div class="text-center text-gray-500">
+             <div class="text-center text-gray-500 m-auto">
                 Enter a recipient's ID to start a conversation.
             </div>
         </div>
 
         <!-- Message Input -->
-        <div class="p-4 border-t bg-white rounded-b-2xl">
+        <div class="p-4 border-t border-gray-700">
             <div class="flex items-center">
-                <input type="text" id="message-input" class="flex-grow p-3 border rounded-l-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type a message..." disabled>
-                <button id="send-button" class="bg-blue-600 text-white p-3 rounded-r-full hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+                <input type="text" id="message-input" class="flex-grow p-3 border rounded-l-full bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" placeholder="Type a message..." disabled>
+                <button id="send-button" class="bg-blue-600 text-white p-3 rounded-r-full hover:bg-blue-700 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed" disabled>
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
@@ -74,9 +74,9 @@
     </div>
     
     <!-- Custom Alert Modal -->
-    <div id="custom-alert" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm">
-            <p id="alert-message" class="text-lg mb-4"></p>
+    <div id="custom-alert" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-50">
+        <div class="bg-gray-700 p-6 rounded-lg shadow-xl text-center max-w-sm border border-gray-600">
+            <p id="alert-message" class="text-lg mb-4 text-gray-200"></p>
             <button id="alert-ok-button" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">OK</button>
         </div>
     </div>
@@ -89,12 +89,11 @@
         import { getFirestore, onSnapshot, collection, addDoc, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
-        // This is YOUR specific Firebase configuration.
         const firebaseConfig = {
             apiKey: "AIzaSyAcTZSLFuQ6QVljMDnuxlelgCkQMOC-guk",
             authDomain: "benchloe-2bb61.firebaseapp.com",
             projectId: "benchloe-2bb61",
-            storageBucket: "benchloe-2bb61.appspot.com", // Corrected the domain for storage bucket
+            storageBucket: "benchloe-2bb61.appspot.com",
             messagingSenderId: "598708264931",
             appId: "1:598708264931:web:8ab985bdd66ba29af0cad6"
         };
@@ -103,7 +102,7 @@
         let app, auth, db;
         let currentUserId = null;
         let recipientId = null;
-        let unsubscribeFromMessages = null; // To store the listener unsubscribe function
+        let unsubscribeFromMessages = null;
 
         // --- UI Elements ---
         const currentUserIdEl = document.getElementById('current-user-id');
@@ -114,8 +113,6 @@
         const messagesContainer = document.getElementById('messages');
         const messageInput = document.getElementById('message-input');
         const sendButton = document.getElementById('send-button');
-        
-        // Custom Alert Elements
         const customAlert = document.getElementById('custom-alert');
         const alertMessage = document.getElementById('alert-message');
         const alertOkButton = document.getElementById('alert-ok-button');
@@ -126,7 +123,6 @@
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
-                
                 handleAuthentication();
                 setupEventListeners();
             } catch (error) {
@@ -136,22 +132,25 @@
         });
 
         /**
-         * Handles user authentication, signing in anonymously.
+         * Handles user authentication and enables UI when ready.
          */
         async function handleAuthentication() {
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
-                    // User is signed in.
                     currentUserId = user.uid;
                     currentUserIdEl.textContent = currentUserId;
+                    
+                    // **FIX**: Enable chat controls only after authentication is complete.
                     copyIdButton.disabled = false;
+                    recipientIdInput.disabled = false;
+                    recipientIdInput.placeholder = "Enter recipient's ID to start chat";
+                    startChatButton.disabled = false;
+
                 } else {
-                    // User is signed out. Attempt to sign in.
                     try {
                         await signInAnonymously(auth);
                     } catch (error) {
                         console.error("Anonymous authentication failed:", error);
-                        // **FIX**: Provide a specific error message for the configuration issue.
                         if (error.code === 'auth/configuration-not-found') {
                             showAlert("Authentication setup error: Please go to your Firebase Console, select 'Authentication', go to the 'Sign-in method' tab, and enable 'Anonymous' sign-in for your project.");
                         } else {
@@ -183,6 +182,10 @@
         function initializeChat() {
             const newRecipientId = recipientIdInput.value.trim();
 
+            if (!currentUserId) {
+                showAlert("Still connecting... please wait a moment and try again.");
+                return;
+            }
             if (!newRecipientId || newRecipientId === currentUserId) {
                 showAlert("Please enter a valid User ID that is not your own.");
                 return;
@@ -220,7 +223,6 @@
             const chatRoomId = getChatRoomId();
             if (!chatRoomId) return;
 
-            // This path is now simplified for your own project.
             const messagesCollectionPath = `chats/${chatRoomId}/messages`;
             const q = query(collection(db, messagesCollectionPath));
             
@@ -241,8 +243,8 @@
             }, (error) => {
                 console.error("Error listening for messages: ", error);
                 chatStatusEl.textContent = "Error loading chat.";
-                chatStatusEl.classList.remove('text-green-600');
-                chatStatusEl.classList.add('text-red-600');
+                chatStatusEl.classList.remove('text-green-500');
+                chatStatusEl.classList.add('text-red-500');
             });
         }
         
@@ -252,38 +254,38 @@
         function renderMessages(messages) {
             messagesContainer.innerHTML = '';
             if (messages.length === 0) {
-                 messagesContainer.innerHTML = `<div class="text-center text-gray-500">No messages yet. Say hello!</div>`;
+                 messagesContainer.innerHTML = `<div class="text-center text-gray-500 m-auto">No messages yet. Say hello!</div>`;
             } else {
                 messages.forEach(msg => {
-                    const messageWrapper = document.createElement('div');
+                    const messageContainer = document.createElement('div');
+                    messageContainer.classList.add('flex', 'w-full', 'mb-3');
+
                     const messageBubble = document.createElement('div');
-                    const timestampEl = document.createElement('div');
-
-                    messageWrapper.classList.add('flex', 'mb-4');
                     messageBubble.classList.add('px-4', 'py-2', 'rounded-xl', 'max-w-xs', 'lg:max-w-md', 'break-words');
-                    timestampEl.classList.add('text-xs', 'text-gray-400', 'mt-1');
-
+                    
+                    const timestampEl = document.createElement('div');
+                    timestampEl.classList.add('text-xs', 'text-gray-500', 'mt-1');
                     const sentDate = msg.timestamp ? msg.timestamp.toDate() : new Date();
                     timestampEl.textContent = sentDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                     if (msg.senderId === currentUserId) {
-                        messageWrapper.classList.add('justify-end');
+                        messageContainer.classList.add('justify-end');
                         messageBubble.classList.add('bg-blue-600', 'text-white');
                         timestampEl.classList.add('text-right');
                     } else {
-                        messageWrapper.classList.add('justify-start');
-                        messageBubble.classList.add('bg-gray-200', 'text-gray-800');
+                        messageContainer.classList.add('justify-start');
+                        messageBubble.classList.add('bg-gray-600', 'text-gray-200');
                         timestampEl.classList.add('text-left');
                     }
 
                     messageBubble.textContent = msg.text;
-                    messageWrapper.appendChild(messageBubble);
                     
-                    const container = document.createElement('div');
-                    container.appendChild(messageWrapper);
-                    container.appendChild(timestampEl);
+                    const messageContent = document.createElement('div');
+                    messageContent.appendChild(messageBubble);
+                    messageContent.appendChild(timestampEl);
+                    messageContainer.appendChild(messageContent);
 
-                    messagesContainer.appendChild(container);
+                    messagesContainer.appendChild(messageContainer);
                 });
             }
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
