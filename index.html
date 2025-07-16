@@ -86,7 +86,7 @@
         // --- Firebase SDK Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, onSnapshot, collection, addDoc, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, onSnapshot, collection, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -140,7 +140,6 @@
                     currentUserId = user.uid;
                     currentUserIdEl.textContent = currentUserId;
                     
-                    // **FIX**: Enable chat controls only after authentication is complete.
                     copyIdButton.disabled = false;
                     recipientIdInput.disabled = false;
                     recipientIdInput.placeholder = "Enter recipient's ID to start chat";
@@ -224,7 +223,8 @@
             if (!chatRoomId) return;
 
             const messagesCollectionPath = `chats/${chatRoomId}/messages`;
-            const q = query(collection(db, messagesCollectionPath));
+            // **FIX**: Added orderBy to the query. This requires a Firestore index.
+            const q = query(collection(db, messagesCollectionPath), orderBy("timestamp"));
             
             unsubscribeFromMessages = onSnapshot(q, (querySnapshot) => {
                 const allMessages = [];
@@ -232,16 +232,15 @@
                     allMessages.push({ id: doc.id, ...doc.data() });
                 });
 
-                allMessages.sort((a, b) => {
-                    const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
-                    const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
-                    return timeA - timeB;
-                });
-
+                // No longer need to sort client-side, Firestore does it for us.
                 renderMessages(allMessages);
 
             }, (error) => {
                 console.error("Error listening for messages: ", error);
+                // Provide a more helpful error message for the index issue.
+                if (error.code === 'failed-precondition') {
+                    showAlert("A database index is required. Please check the browser console for a link to create it.");
+                }
                 chatStatusEl.textContent = "Error loading chat.";
                 chatStatusEl.classList.remove('text-green-500');
                 chatStatusEl.classList.add('text-red-500');
