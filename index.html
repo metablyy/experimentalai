@@ -75,7 +75,7 @@
     
     <!-- Custom Alert Modal -->
     <div id="custom-alert" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+        <div class="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm">
             <p id="alert-message" class="text-lg mb-4"></p>
             <button id="alert-ok-button" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">OK</button>
         </div>
@@ -85,13 +85,19 @@
     <script type="module">
         // --- Firebase SDK Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, collection, addDoc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, onSnapshot, collection, addDoc, serverTimestamp, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
-        // These global variables are provided by the environment.
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-chat-app';
+        // This is YOUR specific Firebase configuration.
+        const firebaseConfig = {
+            apiKey: "AIzaSyAcTZSLFuQ6QVljMDnuxlelgCkQMOC-guk",
+            authDomain: "benchloe-2bb61.firebaseapp.com",
+            projectId: "benchloe-2bb61",
+            storageBucket: "benchloe-2bb61.appspot.com", // Corrected the domain for storage bucket
+            messagingSenderId: "598708264931",
+            appId: "1:598708264931:web:8ab985bdd66ba29af0cad6"
+        };
 
         // --- App Initialization ---
         let app, auth, db;
@@ -125,13 +131,12 @@
                 setupEventListeners();
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
-                showAlert("Could not connect to the service. Please refresh the page.");
+                showAlert("Could not connect to the service. Please check your Firebase configuration.");
             }
         });
 
         /**
-         * Handles user authentication, signing in with a custom token if available,
-         * or falling back to anonymous sign-in.
+         * Handles user authentication, signing in anonymously.
          */
         async function handleAuthentication() {
             onAuthStateChanged(auth, async (user) => {
@@ -143,14 +148,15 @@
                 } else {
                     // User is signed out. Attempt to sign in.
                     try {
-                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
+                        await signInAnonymously(auth);
                     } catch (error) {
-                        console.error("Authentication failed:", error);
-                        showAlert("Authentication failed. You won't be able to send or receive messages.");
+                        console.error("Anonymous authentication failed:", error);
+                        // **FIX**: Provide a specific error message for the configuration issue.
+                        if (error.code === 'auth/configuration-not-found') {
+                            showAlert("Authentication setup error: Please go to your Firebase Console, select 'Authentication', go to the 'Sign-in method' tab, and enable 'Anonymous' sign-in for your project.");
+                        } else {
+                            showAlert("Authentication failed. You won't be able to send or receive messages.");
+                        }
                     }
                 }
             });
@@ -173,8 +179,6 @@
 
         /**
          * Initializes a chat session with the recipient.
-         * It validates the recipient ID, creates a unique chat room ID,
-         * and starts listening for messages.
          */
         function initializeChat() {
             const newRecipientId = recipientIdInput.value.trim();
@@ -186,16 +190,13 @@
 
             recipientId = newRecipientId;
 
-            // Stop listening to the old chat if there was one
             if (unsubscribeFromMessages) {
                 unsubscribeFromMessages();
             }
 
-            // Clear previous messages and state
             messagesContainer.innerHTML = '';
             chatStatusEl.textContent = `Chatting with ${recipientId.substring(0, 8)}...`;
             
-            // Enable the message input
             messageInput.disabled = false;
             sendButton.disabled = false;
             messageInput.placeholder = "Type your message...";
@@ -205,11 +206,9 @@
 
         /**
          * Creates a consistent and unique chat room ID from two user IDs.
-         * @returns {string} The generated chat room ID.
          */
         function getChatRoomId() {
             if (!currentUserId || !recipientId) return null;
-            // Sort the IDs to ensure the chat room ID is the same for both users
             const ids = [currentUserId, recipientId].sort();
             return `${ids[0]}_${ids[1]}`;
         }
@@ -221,19 +220,16 @@
             const chatRoomId = getChatRoomId();
             if (!chatRoomId) return;
 
-            const messagesCollectionPath = `/artifacts/${appId}/public/data/chats/${chatRoomId}/messages`;
+            // This path is now simplified for your own project.
+            const messagesCollectionPath = `chats/${chatRoomId}/messages`;
             const q = query(collection(db, messagesCollectionPath));
             
-            // Note: Firestore's onSnapshot doesn't support orderBy without a composite index.
-            // We will fetch and sort on the client side after getting the documents.
-
             unsubscribeFromMessages = onSnapshot(q, (querySnapshot) => {
                 const allMessages = [];
                 querySnapshot.forEach((doc) => {
                     allMessages.push({ id: doc.id, ...doc.data() });
                 });
 
-                // Sort messages by timestamp client-side
                 allMessages.sort((a, b) => {
                     const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
                     const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
@@ -251,11 +247,10 @@
         }
         
         /**
-         * Renders the messages to the screen, distinguishing between sent and received.
-         * @param {Array<Object>} messages - An array of message objects.
+         * Renders the messages to the screen.
          */
         function renderMessages(messages) {
-            messagesContainer.innerHTML = ''; // Clear existing messages
+            messagesContainer.innerHTML = '';
             if (messages.length === 0) {
                  messagesContainer.innerHTML = `<div class="text-center text-gray-500">No messages yet. Say hello!</div>`;
             } else {
@@ -272,12 +267,10 @@
                     timestampEl.textContent = sentDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                     if (msg.senderId === currentUserId) {
-                        // Sent message
                         messageWrapper.classList.add('justify-end');
                         messageBubble.classList.add('bg-blue-600', 'text-white');
                         timestampEl.classList.add('text-right');
                     } else {
-                        // Received message
                         messageWrapper.classList.add('justify-start');
                         messageBubble.classList.add('bg-gray-200', 'text-gray-800');
                         timestampEl.classList.add('text-left');
@@ -286,7 +279,6 @@
                     messageBubble.textContent = msg.text;
                     messageWrapper.appendChild(messageBubble);
                     
-                    // The timestamp will be under the bubble, aligned correctly
                     const container = document.createElement('div');
                     container.appendChild(messageWrapper);
                     container.appendChild(timestampEl);
@@ -294,7 +286,6 @@
                     messagesContainer.appendChild(container);
                 });
             }
-            // Scroll to the latest message
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
@@ -303,9 +294,7 @@
          */
         async function sendMessage() {
             const text = messageInput.value.trim();
-            if (text === '' || !currentUserId || !recipientId) {
-                return;
-            }
+            if (text === '' || !currentUserId || !recipientId) return;
 
             const chatRoomId = getChatRoomId();
             if (!chatRoomId) {
@@ -313,7 +302,7 @@
                 return;
             }
             
-            const messagesCollectionPath = `/artifacts/${appId}/public/data/chats/${chatRoomId}/messages`;
+            const messagesCollectionPath = `chats/${chatRoomId}/messages`;
 
             try {
                 await addDoc(collection(db, messagesCollectionPath), {
@@ -322,7 +311,7 @@
                     recipientId: recipientId,
                     timestamp: serverTimestamp()
                 });
-                messageInput.value = ''; // Clear input field
+                messageInput.value = '';
             } catch (error) {
                 console.error("Error sending message: ", error);
                 showAlert("Message could not be sent.");
@@ -334,14 +323,11 @@
          */
         function copyUserIdToClipboard() {
             const idToCopy = currentUserIdEl.textContent;
-            if (!idToCopy || idToCopy === 'Loading...') {
-                return;
-            }
+            if (!idToCopy || idToCopy === 'Loading...') return;
             
-            // A fallback for navigator.clipboard which may not work in all iframe contexts
             const textArea = document.createElement("textarea");
             textArea.value = idToCopy;
-            textArea.style.position = "fixed"; // Avoid scrolling to bottom
+            textArea.style.position = "fixed";
             document.body.appendChild(textArea);
             textArea.focus();
             textArea.select();
@@ -356,7 +342,6 @@
         
         /**
          * Shows a custom, non-blocking alert message.
-         * @param {string} message - The message to display.
          */
         function showAlert(message) {
             alertMessage.textContent = message;
