@@ -3,77 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Messenger</title>
+    <title>Secure Messenger</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
-        /* Simple scrollbar styling for dark theme */
-        #messages::-webkit-scrollbar {
-            width: 8px;
-        }
-        #messages::-webkit-scrollbar-track {
-            background: #1f2937; /* bg-gray-800 */
-        }
-        #messages::-webkit-scrollbar-thumb {
-            background: #4b5563; /* bg-gray-600 */
-            border-radius: 4px;
-        }
-        #messages::-webkit-scrollbar-thumb:hover {
-            background: #6b7280; /* bg-gray-500 */
+        #messages::-webkit-scrollbar { width: 8px; }
+        #messages::-webkit-scrollbar-track { background: #1f2937; }
+        #messages::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        #messages::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        .avatar-selected {
+            outline: 3px solid #3b82f6; /* blue-500 */
+            outline-offset: 2px;
         }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200 flex items-center justify-center h-screen">
+<body class="bg-gray-900 text-gray-200 flex items-center justify-center h-screen overflow-hidden">
 
-    <div class="w-full max-w-md mx-auto bg-gray-800 rounded-2xl shadow-2xl flex flex-col h-[90vh]">
-        <!-- Header -->
-        <div class="p-4 border-b border-gray-700 bg-blue-700 text-white rounded-t-2xl shadow-md">
-            <h1 class="text-2xl font-bold text-center">Firebase Messenger</h1>
+    <!-- Profile Setup Modal -->
+    <div id="profile-modal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-sm mx-4">
+            <h2 class="text-2xl font-bold text-center text-white mb-6">Set Up Your Profile</h2>
+            <div class="mb-6">
+                <label for="nickname-input" class="block text-sm font-medium text-gray-400 mb-2">Nickname</label>
+                <input type="text" id="nickname-input" class="w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter your nickname">
+            </div>
+            <div class="mb-6">
+                <p class="block text-sm font-medium text-gray-400 mb-2">Choose an Avatar</p>
+                <div id="avatar-selection" class="grid grid-cols-4 gap-4">
+                    <!-- Avatars will be populated by JS -->
+                </div>
+            </div>
+            <button id="save-profile-button" class="w-full bg-blue-600 text-white font-bold py-3 rounded-md hover:bg-blue-700 transition-colors">Start Chatting</button>
+        </div>
+    </div>
+
+    <!-- Main Chat UI -->
+    <div id="chat-container" class="w-full h-full md:max-w-md md:h-[90vh] md:rounded-2xl bg-gray-800 shadow-2xl flex flex-col hidden">
+        <div class="p-4 border-b border-gray-700 bg-blue-700 text-white md:rounded-t-2xl shadow-md">
+            <h1 class="text-2xl font-bold text-center">Secure Messenger</h1>
             <div class="mt-2 text-center text-sm">
-                <p>Your User ID: <span id="current-user-id" class="font-mono bg-blue-800 px-2 py-1 rounded-md">Loading...</span></p>
-                <button id="copy-id-button" class="mt-2 text-xs bg-gray-200 text-blue-700 font-semibold py-1 px-2 rounded-md hover:bg-gray-300 transition-colors disabled:opacity-50" disabled>Copy ID</button>
+                <p>Your User ID: <span id="current-user-id" class="font-mono bg-blue-800 px-2 py-1 rounded-md">...</span></p>
+                <button id="copy-id-button" class="mt-2 text-xs bg-gray-200 text-blue-700 font-semibold py-1 px-2 rounded-md hover:bg-gray-300 transition-colors">Copy ID</button>
             </div>
         </div>
 
-        <!-- Recipient Info -->
         <div class="p-4 border-b border-gray-700">
              <label for="recipient-id" class="block text-sm font-medium text-gray-400">Recipient's User ID:</label>
              <div class="mt-1 flex rounded-md shadow-sm">
-                <input type="text" id="recipient-id" class="flex-1 block w-full rounded-none rounded-l-md bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400 px-3 py-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50" placeholder="Loading..." disabled>
-                <button id="start-chat-button" class="inline-flex items-center px-3 py-2 border border-l-0 border-gray-600 rounded-r-md bg-gray-600 text-gray-300 hover:bg-gray-500 disabled:opacity-50" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
-                    </svg>
+                <input type="text" id="recipient-id" class="flex-1 block w-full rounded-none rounded-l-md bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400 px-3 py-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter recipient's ID">
+                <button id="start-chat-button" class="inline-flex items-center px-3 py-2 border border-l-0 border-gray-600 rounded-r-md bg-gray-600 text-gray-300 hover:bg-gray-500">
+                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" /></svg>
                 </button>
              </div>
              <p id="chat-status" class="text-xs text-center mt-2 text-green-500 font-semibold"></p>
         </div>
 
-        <!-- Messages Area -->
         <div id="messages" class="flex-1 p-4 overflow-y-auto bg-gray-900 flex flex-col">
-            <!-- Messages will be dynamically added here -->
-             <div class="text-center text-gray-500 m-auto">
-                Enter a recipient's ID to start a conversation.
-            </div>
+             <div class="text-center text-gray-500 m-auto">Enter a recipient's ID to start a conversation.</div>
         </div>
 
-        <!-- Message Input -->
         <div class="p-4 border-t border-gray-700">
             <div class="flex items-center">
-                <input type="text" id="message-input" class="flex-grow p-3 border rounded-l-full bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50" placeholder="Type a message..." disabled>
-                <button id="send-button" class="bg-blue-600 text-white p-3 rounded-r-full hover:bg-blue-700 transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed" disabled>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
+                <input type="text" id="message-input" class="flex-grow p-3 border rounded-l-full bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type a message..." disabled>
+                <button id="send-button" class="bg-blue-600 text-white p-3 rounded-r-full hover:bg-blue-700 transition-colors disabled:bg-gray-500" disabled>
+                    <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                 </button>
             </div>
         </div>
     </div>
     
-    <!-- Custom Alert Modal -->
     <div id="custom-alert" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center hidden z-50">
         <div class="bg-gray-700 p-6 rounded-lg shadow-xl text-center max-w-sm border border-gray-600">
             <p id="alert-message" class="text-lg mb-4 text-gray-200"></p>
@@ -81,14 +82,11 @@
         </div>
     </div>
 
-
     <script type="module">
-        // --- Firebase SDK Imports ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, onSnapshot, collection, addDoc, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, onSnapshot, collection, addDoc, serverTimestamp, query, orderBy, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Firebase Configuration ---
         const firebaseConfig = {
             apiKey: "AIzaSyAcTZSLFuQ6QVljMDnuxlelgCkQMOC-guk",
             authDomain: "benchloe-2bb61.firebaseapp.com",
@@ -98,255 +96,315 @@
             appId: "1:598708264931:web:8ab985bdd66ba29af0cad6"
         };
 
-        // --- App Initialization ---
         let app, auth, db;
-        let currentUserId = null;
+        let currentUserId = null, currentUserProfile = null;
         let recipientId = null;
         let unsubscribeFromMessages = null;
+        let sharedSecret = null; // This will hold the derived AES key for encryption
 
-        // --- UI Elements ---
-        const currentUserIdEl = document.getElementById('current-user-id');
-        const copyIdButton = document.getElementById('copy-id-button');
-        const recipientIdInput = document.getElementById('recipient-id');
-        const startChatButton = document.getElementById('start-chat-button');
-        const chatStatusEl = document.getElementById('chat-status');
-        const messagesContainer = document.getElementById('messages');
-        const messageInput = document.getElementById('message-input');
-        const sendButton = document.getElementById('send-button');
-        const customAlert = document.getElementById('custom-alert');
-        const alertMessage = document.getElementById('alert-message');
-        const alertOkButton = document.getElementById('alert-ok-button');
+        const UI = {
+            profileModal: document.getElementById('profile-modal'),
+            nicknameInput: document.getElementById('nickname-input'),
+            avatarSelection: document.getElementById('avatar-selection'),
+            saveProfileButton: document.getElementById('save-profile-button'),
+            chatContainer: document.getElementById('chat-container'),
+            currentUserIdEl: document.getElementById('current-user-id'),
+            copyIdButton: document.getElementById('copy-id-button'),
+            recipientIdInput: document.getElementById('recipient-id'),
+            startChatButton: document.getElementById('start-chat-button'),
+            chatStatus: document.getElementById('chat-status'),
+            messagesContainer: document.getElementById('messages'),
+            messageInput: document.getElementById('message-input'),
+            sendButton: document.getElementById('send-button'),
+            customAlert: document.getElementById('custom-alert'),
+            alertMessage: document.getElementById('alert-message'),
+            alertOkButton: document.getElementById('alert-ok-button'),
+        };
+
+        const AVATARS = [
+            'https://placehold.co/100x100/3B82F6/FFFFFF?text=A', 'https://placehold.co/100x100/10B981/FFFFFF?text=B',
+            'https://placehold.co/100x100/F59E0B/FFFFFF?text=C', 'https://placehold.co/100x100/EF4444/FFFFFF?text=D',
+            'https://placehold.co/100x100/8B5CF6/FFFFFF?text=E', 'https://placehold.co/100x100/EC4899/FFFFFF?text=F',
+            'https://placehold.co/100x100/6366F1/FFFFFF?text=G', 'https://placehold.co/100x100/14B8A6/FFFFFF?text=H',
+        ];
+
+        // --- Crypto Helper Functions ---
+        const cryptoUtils = {
+            // Generate an ECDH key pair for secure key exchange
+            async generateKeyPair() {
+                return await window.crypto.subtle.generateKey(
+                    { name: "ECDH", namedCurve: "P-256" },
+                    true, ["deriveKey"]
+                );
+            },
+            // Export a public key to a storable format (JWK)
+            async exportPublicKey(key) {
+                return await window.crypto.subtle.exportKey("jwk", key);
+            },
+            // Import a public key from a stored format (JWK)
+            async importPublicKey(jwk) {
+                return await window.crypto.subtle.importKey(
+                    "jwk", jwk, { name: "ECDH", namedCurve: "P-256" }, true, []
+                );
+            },
+            // Derive a shared secret AES key for encryption/decryption
+            async deriveSharedSecret(privateKey, publicKey) {
+                return await window.crypto.subtle.deriveKey(
+                    { name: "ECDH", public: publicKey },
+                    privateKey, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]
+                );
+            },
+            // Encrypt a message using the shared secret
+            async encrypt(text, secretKey) {
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                const encodedText = new TextEncoder().encode(text);
+                const encryptedData = await window.crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv: iv }, secretKey, encodedText
+                );
+                // Combine IV and encrypted data for storage/transmission
+                const ivAndEncryptedData = new Uint8Array(iv.length + encryptedData.byteLength);
+                ivAndEncryptedData.set(iv);
+                ivAndEncryptedData.set(new Uint8Array(encryptedData), iv.length);
+                return btoa(String.fromCharCode.apply(null, ivAndEncryptedData)); // to base64
+            },
+            // Decrypt a message using the shared secret
+            async decrypt(base64Ciphertext, secretKey) {
+                try {
+                    const ivAndEncryptedData = new Uint8Array(atob(base64Ciphertext).split("").map(c => c.charCodeAt(0)));
+                    const iv = ivAndEncryptedData.slice(0, 12);
+                    const encryptedData = ivAndEncryptedData.slice(12);
+                    const decryptedData = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: iv }, secretKey, encryptedData
+                    );
+                    return new TextDecoder().decode(decryptedData);
+                } catch (e) {
+                    console.error("Decryption failed:", e);
+                    return "🔒 Failed to decrypt message.";
+                }
+            }
+        };
 
         // --- Main App Logic ---
         document.addEventListener('DOMContentLoaded', () => {
-            try {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                handleAuthentication();
-                setupEventListeners();
-            } catch (error) {
-                console.error("Error initializing Firebase:", error);
-                showAlert("Could not connect to the service. Please check your Firebase configuration.");
-            }
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            populateAvatars();
+            setupEventListeners();
+            handleAuthentication();
         });
 
-        /**
-         * Handles user authentication and enables UI when ready.
-         */
+        function populateAvatars() {
+            AVATARS.forEach((src, index) => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.alt = `Avatar ${index + 1}`;
+                img.classList.add('w-16', 'h-16', 'rounded-full', 'cursor-pointer', 'hover:opacity-80', 'transition-opacity');
+                img.dataset.src = src;
+                UI.avatarSelection.appendChild(img);
+            });
+        }
+
         async function handleAuthentication() {
             onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUserId = user.uid;
-                    currentUserIdEl.textContent = currentUserId;
-                    
-                    copyIdButton.disabled = false;
-                    recipientIdInput.disabled = false;
-                    recipientIdInput.placeholder = "Enter recipient's ID to start chat";
-                    startChatButton.disabled = false;
+                if (!user) {
+                    await signInAnonymously(auth).catch(err => {
+                        console.error("Auth Error", err);
+                        showAlert("Could not connect to the authentication service.");
+                    });
+                    return;
+                }
+                currentUserId = user.uid;
+                UI.currentUserIdEl.textContent = currentUserId;
 
+                // Check if user has a profile
+                const userDocRef = doc(db, "users", currentUserId);
+                const userDocSnap = await getDoc(userDocRef);
+                if (userDocSnap.exists()) {
+                    currentUserProfile = userDocSnap.data();
+                    UI.profileModal.classList.add('hidden');
+                    UI.chatContainer.classList.remove('hidden');
                 } else {
-                    try {
-                        await signInAnonymously(auth);
-                    } catch (error) {
-                        console.error("Anonymous authentication failed:", error);
-                        if (error.code === 'auth/configuration-not-found') {
-                            showAlert("Authentication setup error: Please go to your Firebase Console, select 'Authentication', go to the 'Sign-in method' tab, and enable 'Anonymous' sign-in for your project.");
-                        } else {
-                            showAlert("Authentication failed. You won't be able to send or receive messages.");
-                        }
-                    }
+                    UI.profileModal.classList.remove('hidden');
                 }
             });
         }
         
-        /**
-         * Sets up all the necessary event listeners for the UI.
-         */
         function setupEventListeners() {
-            sendButton.addEventListener('click', sendMessage);
-            messageInput.addEventListener('keyup', (event) => {
-                if (event.key === 'Enter') {
-                    sendMessage();
+            UI.saveProfileButton.addEventListener('click', saveProfile);
+            UI.avatarSelection.addEventListener('click', (e) => {
+                if (e.target.tagName === 'IMG') {
+                    document.querySelectorAll('#avatar-selection img').forEach(img => img.classList.remove('avatar-selected'));
+                    e.target.classList.add('avatar-selected');
                 }
             });
-            startChatButton.addEventListener('click', initializeChat);
-            copyIdButton.addEventListener('click', copyUserIdToClipboard);
-            alertOkButton.addEventListener('click', () => customAlert.classList.add('hidden'));
+            UI.startChatButton.addEventListener('click', initializeChat);
+            UI.sendButton.addEventListener('click', sendMessage);
+            UI.messageInput.addEventListener('keyup', (e) => e.key === 'Enter' && sendMessage());
+            UI.copyIdButton.addEventListener('click', () => navigator.clipboard.writeText(currentUserId).then(() => showAlert("User ID copied!")));
+            UI.alertOkButton.addEventListener('click', () => UI.customAlert.classList.add('hidden'));
         }
 
-        /**
-         * Initializes a chat session with the recipient.
-         */
-        function initializeChat() {
-            const newRecipientId = recipientIdInput.value.trim();
-
-            if (!currentUserId) {
-                showAlert("Still connecting... please wait a moment and try again.");
+        async function saveProfile() {
+            const nickname = UI.nicknameInput.value.trim();
+            const selectedAvatar = document.querySelector('.avatar-selected');
+            if (!nickname || !selectedAvatar) {
+                showAlert("Please enter a nickname and select an avatar.");
                 return;
             }
+            currentUserProfile = { nickname, avatar: selectedAvatar.dataset.src };
+            await setDoc(doc(db, "users", currentUserId), currentUserProfile);
+            UI.profileModal.classList.add('hidden');
+            UI.chatContainer.classList.remove('hidden');
+        }
+
+        async function initializeChat() {
+            const newRecipientId = UI.recipientIdInput.value.trim();
             if (!newRecipientId || newRecipientId === currentUserId) {
-                showAlert("Please enter a valid User ID that is not your own.");
+                showAlert("Please enter a valid User ID.");
                 return;
             }
-
             recipientId = newRecipientId;
+            if (unsubscribeFromMessages) unsubscribeFromMessages();
+            
+            UI.chatStatus.textContent = "Establishing secure connection...";
+            UI.messageInput.disabled = true;
+            UI.sendButton.disabled = true;
 
-            if (unsubscribeFromMessages) {
-                unsubscribeFromMessages();
+            try {
+                // Key Exchange
+                const keyPair = await cryptoUtils.generateKeyPair();
+                const myPublicKeyJwk = await cryptoUtils.exportPublicKey(keyPair.publicKey);
+                const chatRoomId = getChatRoomId();
+                const myKeyRef = doc(db, `chats/${chatRoomId}/keys`, currentUserId);
+                await setDoc(myKeyRef, { publicKey: myPublicKeyJwk });
+
+                const recipientKeyRef = doc(db, `chats/${chatRoomId}/keys`, recipientId);
+                const unsub = onSnapshot(recipientKeyRef, async (keySnap) => {
+                    if (keySnap.exists()) {
+                        const recipientPublicKeyJwk = keySnap.data().publicKey;
+                        const recipientPublicKey = await cryptoUtils.importPublicKey(recipientPublicKeyJwk);
+                        sharedSecret = await cryptoUtils.deriveSharedSecret(keyPair.privateKey, recipientPublicKey);
+                        
+                        UI.chatStatus.textContent = `✅ Securely connected!`;
+                        UI.messageInput.disabled = false;
+                        UI.sendButton.disabled = false;
+                        listenForMessages();
+                        unsub(); // Stop listening for the key once we have it
+                    }
+                });
+            } catch (error) {
+                console.error("Key exchange failed:", error);
+                UI.chatStatus.textContent = "❌ Secure connection failed.";
             }
-
-            messagesContainer.innerHTML = '';
-            chatStatusEl.textContent = `Chatting with ${recipientId.substring(0, 8)}...`;
-            
-            messageInput.disabled = false;
-            sendButton.disabled = false;
-            messageInput.placeholder = "Type your message...";
-            
-            listenForMessages();
         }
 
-        /**
-         * Creates a consistent and unique chat room ID from two user IDs.
-         */
         function getChatRoomId() {
-            if (!currentUserId || !recipientId) return null;
             const ids = [currentUserId, recipientId].sort();
             return `${ids[0]}_${ids[1]}`;
         }
 
-        /**
-         * Sets up a real-time listener for new messages in the current chat room.
-         */
         function listenForMessages() {
             const chatRoomId = getChatRoomId();
-            if (!chatRoomId) return;
-
             const messagesCollectionPath = `chats/${chatRoomId}/messages`;
-            // **FIX**: Added orderBy to the query. This requires a Firestore index.
             const q = query(collection(db, messagesCollectionPath), orderBy("timestamp"));
             
-            unsubscribeFromMessages = onSnapshot(q, (querySnapshot) => {
-                const allMessages = [];
-                querySnapshot.forEach((doc) => {
-                    allMessages.push({ id: doc.id, ...doc.data() });
-                });
-
-                // No longer need to sort client-side, Firestore does it for us.
-                renderMessages(allMessages);
-
+            unsubscribeFromMessages = onSnapshot(q, async (querySnapshot) => {
+                const messages = [];
+                for (const doc of querySnapshot.docs) {
+                    const data = doc.data();
+                    const decryptedText = await cryptoUtils.decrypt(data.text, sharedSecret);
+                    messages.push({ ...data, text: decryptedText });
+                }
+                renderMessages(messages);
             }, (error) => {
                 console.error("Error listening for messages: ", error);
-                // Provide a more helpful error message for the index issue.
                 if (error.code === 'failed-precondition') {
-                    showAlert("A database index is required. Please check the browser console for a link to create it.");
+                    showAlert("A database index is required. Check the console for a link to create it.");
                 }
-                chatStatusEl.textContent = "Error loading chat.";
-                chatStatusEl.classList.remove('text-green-500');
-                chatStatusEl.classList.add('text-red-500');
             });
         }
         
-        /**
-         * Renders the messages to the screen.
-         */
-        function renderMessages(messages) {
-            messagesContainer.innerHTML = '';
+        async function renderMessages(messages) {
+            UI.messagesContainer.innerHTML = '';
             if (messages.length === 0) {
-                 messagesContainer.innerHTML = `<div class="text-center text-gray-500 m-auto">No messages yet. Say hello!</div>`;
-            } else {
-                messages.forEach(msg => {
-                    const messageContainer = document.createElement('div');
-                    messageContainer.classList.add('flex', 'w-full', 'mb-3');
+                 UI.messagesContainer.innerHTML = `<div class="text-center text-gray-500 m-auto">No messages yet. Say hello!</div>`;
+                 return;
+            } 
+            for (const msg of messages) {
+                const userProfile = await getUserProfile(msg.senderId);
+                const messageContainer = document.createElement('div');
+                messageContainer.classList.add('flex', 'items-end', 'gap-2', 'mb-4');
 
-                    const messageBubble = document.createElement('div');
-                    messageBubble.classList.add('px-4', 'py-2', 'rounded-xl', 'max-w-xs', 'lg:max-w-md', 'break-words');
-                    
-                    const timestampEl = document.createElement('div');
-                    timestampEl.classList.add('text-xs', 'text-gray-500', 'mt-1');
-                    const sentDate = msg.timestamp ? msg.timestamp.toDate() : new Date();
-                    timestampEl.textContent = sentDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const avatar = document.createElement('img');
+                avatar.src = userProfile.avatar;
+                avatar.classList.add('w-8', 'h-8', 'rounded-full');
 
-                    if (msg.senderId === currentUserId) {
-                        messageContainer.classList.add('justify-end');
-                        messageBubble.classList.add('bg-blue-600', 'text-white');
-                        timestampEl.classList.add('text-right');
-                    } else {
-                        messageContainer.classList.add('justify-start');
-                        messageBubble.classList.add('bg-gray-600', 'text-gray-200');
-                        timestampEl.classList.add('text-left');
-                    }
+                const messageContent = document.createElement('div');
+                const nicknameEl = document.createElement('div');
+                nicknameEl.textContent = userProfile.nickname;
+                nicknameEl.classList.add('text-xs', 'font-bold', 'text-gray-400', 'mb-1');
 
-                    messageBubble.textContent = msg.text;
-                    
-                    const messageContent = document.createElement('div');
-                    messageContent.appendChild(messageBubble);
-                    messageContent.appendChild(timestampEl);
-                    messageContainer.appendChild(messageContent);
+                const messageBubble = document.createElement('div');
+                messageBubble.textContent = msg.text;
+                messageBubble.classList.add('px-4', 'py-2', 'rounded-xl', 'max-w-xs', 'lg:max-w-md', 'break-words');
 
-                    messagesContainer.appendChild(messageContainer);
-                });
+                if (msg.senderId === currentUserId) {
+                    messageContainer.classList.add('justify-end');
+                    messageBubble.classList.add('bg-blue-600', 'text-white');
+                    nicknameEl.classList.add('text-right');
+                    messageContent.append(nicknameEl, messageBubble);
+                    messageContainer.append(messageContent, avatar);
+                } else {
+                    messageContainer.classList.add('justify-start');
+                    messageBubble.classList.add('bg-gray-600', 'text-gray-200');
+                    nicknameEl.classList.add('text-left');
+                    messageContent.append(nicknameEl, messageBubble);
+                    messageContainer.append(avatar, messageContent);
+                }
+                UI.messagesContainer.appendChild(messageContainer);
             }
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            UI.messagesContainer.scrollTop = UI.messagesContainer.scrollHeight;
+        }
+        
+        // Cache for user profiles to avoid repeated DB reads
+        const profileCache = new Map();
+        async function getUserProfile(userId) {
+            if (profileCache.has(userId)) return profileCache.get(userId);
+            const userDocRef = doc(db, "users", userId);
+            const userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+                const profile = userDocSnap.data();
+                profileCache.set(userId, profile);
+                return profile;
+            }
+            return { nickname: 'Unknown User', avatar: AVATARS[0] }; // Fallback
         }
 
-        /**
-         * Sends a message to the currently selected recipient.
-         */
         async function sendMessage() {
-            const text = messageInput.value.trim();
-            if (text === '' || !currentUserId || !recipientId) return;
-
-            const chatRoomId = getChatRoomId();
-            if (!chatRoomId) {
-                showAlert("Cannot send message: chat room not initialized.");
-                return;
-            }
+            const text = UI.messageInput.value.trim();
+            if (!text || !sharedSecret) return;
             
+            const encryptedText = await cryptoUtils.encrypt(text, sharedSecret);
+            const chatRoomId = getChatRoomId();
             const messagesCollectionPath = `chats/${chatRoomId}/messages`;
 
             try {
                 await addDoc(collection(db, messagesCollectionPath), {
-                    text: text,
+                    text: encryptedText,
                     senderId: currentUserId,
-                    recipientId: recipientId,
                     timestamp: serverTimestamp()
                 });
-                messageInput.value = '';
+                UI.messageInput.value = '';
             } catch (error) {
                 console.error("Error sending message: ", error);
                 showAlert("Message could not be sent.");
             }
         }
         
-        /**
-         * Copies the current user's ID to the clipboard.
-         */
-        function copyUserIdToClipboard() {
-            const idToCopy = currentUserIdEl.textContent;
-            if (!idToCopy || idToCopy === 'Loading...') return;
-            
-            const textArea = document.createElement("textarea");
-            textArea.value = idToCopy;
-            textArea.style.position = "fixed";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                showAlert(`Your User ID has been copied!`);
-            } catch (err) {
-                showAlert('Failed to copy ID.');
-            }
-            document.body.removeChild(textArea);
-        }
-        
-        /**
-         * Shows a custom, non-blocking alert message.
-         */
         function showAlert(message) {
-            alertMessage.textContent = message;
-            customAlert.classList.remove('hidden');
+            UI.alertMessage.textContent = message;
+            UI.customAlert.classList.remove('hidden');
         }
 
     </script>
