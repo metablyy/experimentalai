@@ -26,13 +26,21 @@
     <div id="profile-modal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
         <div class="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-sm mx-4">
             <h2 class="text-2xl font-bold text-center text-white mb-6">Set Up Your Profile</h2>
-            <div class="mb-6">
+            <div class="mb-4">
                 <label for="nickname-input" class="block text-sm font-medium text-gray-400 mb-2">Nickname</label>
                 <input type="text" id="nickname-input" class="w-full bg-gray-700 border-gray-600 text-gray-200 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter your nickname">
             </div>
             <div class="mb-6">
                 <p class="block text-sm font-medium text-gray-400 mb-2">Choose an Avatar</p>
-                <div id="avatar-selection" class="grid grid-cols-4 gap-4">
+                <div class="flex items-center gap-4">
+                    <img id="avatar-preview" src="https://placehold.co/100x100/4B5563/FFFFFF?text=?" class="w-16 h-16 rounded-full bg-gray-600 object-cover">
+                    <label for="avatar-upload-input" class="cursor-pointer bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md transition-colors">
+                        Upload Photo
+                    </label>
+                    <input type="file" id="avatar-upload-input" class="hidden" accept="image/*">
+                </div>
+                 <p class="text-xs text-gray-500 mt-2">Or select a default one:</p>
+                <div id="avatar-selection" class="grid grid-cols-4 gap-4 mt-2">
                     <!-- Avatars will be populated by JS -->
                 </div>
             </div>
@@ -86,6 +94,8 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, onSnapshot, collection, addDoc, serverTimestamp, query, orderBy, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // REMOVED: Firebase Storage is no longer needed.
+        // import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAcTZSLFuQ6QVljMDnuxlelgCkQMOC-guk",
@@ -96,16 +106,18 @@
             appId: "1:598708264931:web:8ab985bdd66ba29af0cad6"
         };
 
-        let app, auth, db;
+        let app, auth, db; // REMOVED: storage
         let currentUserId = null, currentUserProfile = null;
         let recipientId = null;
         let unsubscribeFromMessages = null;
-        let sharedSecret = null; // This will hold the derived AES key for encryption
+        let sharedSecret = null;
 
         const UI = {
             profileModal: document.getElementById('profile-modal'),
             nicknameInput: document.getElementById('nickname-input'),
             avatarSelection: document.getElementById('avatar-selection'),
+            avatarUploadInput: document.getElementById('avatar-upload-input'),
+            avatarPreview: document.getElementById('avatar-preview'),
             saveProfileButton: document.getElementById('save-profile-button'),
             chatContainer: document.getElementById('chat-container'),
             currentUserIdEl: document.getElementById('current-user-id'),
@@ -121,85 +133,50 @@
             alertOkButton: document.getElementById('alert-ok-button'),
         };
 
-        const AVATARS = [
-            'https://placehold.co/100x100/3B82F6/FFFFFF?text=A', 'https://placehold.co/100x100/10B981/FFFFFF?text=B',
-            'https://placehold.co/100x100/F59E0B/FFFFFF?text=C', 'https://placehold.co/100x100/EF4444/FFFFFF?text=D',
-            'https://placehold.co/100x100/8B5CF6/FFFFFF?text=E', 'https://placehold.co/100x100/EC4899/FFFFFF?text=F',
-            'https://placehold.co/100x100/6366F1/FFFFFF?text=G', 'https://placehold.co/100x100/14B8A6/FFFFFF?text=H',
-        ];
+        const AVATARS = [ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H' ];
 
-        // --- Crypto Helper Functions ---
         const cryptoUtils = {
-            // Generate an ECDH key pair for secure key exchange
-            async generateKeyPair() {
-                return await window.crypto.subtle.generateKey(
-                    { name: "ECDH", namedCurve: "P-256" },
-                    true, ["deriveKey"]
-                );
-            },
-            // Export a public key to a storable format (JWK)
-            async exportPublicKey(key) {
-                return await window.crypto.subtle.exportKey("jwk", key);
-            },
-            // Import a public key from a stored format (JWK)
-            async importPublicKey(jwk) {
-                return await window.crypto.subtle.importKey(
-                    "jwk", jwk, { name: "ECDH", namedCurve: "P-256" }, true, []
-                );
-            },
-            // Derive a shared secret AES key for encryption/decryption
-            async deriveSharedSecret(privateKey, publicKey) {
-                return await window.crypto.subtle.deriveKey(
-                    { name: "ECDH", public: publicKey },
-                    privateKey, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]
-                );
-            },
-            // Encrypt a message using the shared secret
+            async generateKeyPair() { return await window.crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveKey"]); },
+            async exportPublicKey(key) { return await window.crypto.subtle.exportKey("jwk", key); },
+            async importPublicKey(jwk) { return await window.crypto.subtle.importKey("jwk", jwk, { name: "ECDH", namedCurve: "P-256" }, true, []); },
+            async deriveSharedSecret(privateKey, publicKey) { return await window.crypto.subtle.deriveKey({ name: "ECDH", public: publicKey }, privateKey, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]); },
             async encrypt(text, secretKey) {
                 const iv = window.crypto.getRandomValues(new Uint8Array(12));
                 const encodedText = new TextEncoder().encode(text);
-                const encryptedData = await window.crypto.subtle.encrypt(
-                    { name: "AES-GCM", iv: iv }, secretKey, encodedText
-                );
-                // Combine IV and encrypted data for storage/transmission
+                const encryptedData = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, secretKey, encodedText);
                 const ivAndEncryptedData = new Uint8Array(iv.length + encryptedData.byteLength);
                 ivAndEncryptedData.set(iv);
                 ivAndEncryptedData.set(new Uint8Array(encryptedData), iv.length);
-                return btoa(String.fromCharCode.apply(null, ivAndEncryptedData)); // to base64
+                return btoa(String.fromCharCode.apply(null, ivAndEncryptedData));
             },
-            // Decrypt a message using the shared secret
             async decrypt(base64Ciphertext, secretKey) {
                 try {
                     const ivAndEncryptedData = new Uint8Array(atob(base64Ciphertext).split("").map(c => c.charCodeAt(0)));
                     const iv = ivAndEncryptedData.slice(0, 12);
                     const encryptedData = ivAndEncryptedData.slice(12);
-                    const decryptedData = await window.crypto.subtle.decrypt(
-                        { name: "AES-GCM", iv: iv }, secretKey, encryptedData
-                    );
+                    const decryptedData = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, secretKey, encryptedData);
                     return new TextDecoder().decode(decryptedData);
-                } catch (e) {
-                    console.error("Decryption failed:", e);
-                    return "🔒 Failed to decrypt message.";
-                }
+                } catch (e) { console.error("Decryption failed:", e); return "🔒 Failed to decrypt message."; }
             }
         };
 
-        // --- Main App Logic ---
         document.addEventListener('DOMContentLoaded', () => {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
+            // REMOVED: storage = getStorage(app);
             populateAvatars();
             setupEventListeners();
             handleAuthentication();
         });
 
         function populateAvatars() {
-            AVATARS.forEach((src, index) => {
+            AVATARS.forEach((letter) => {
                 const img = document.createElement('img');
+                const src = `https://placehold.co/100x100/6366F1/FFFFFF?text=${letter}`;
                 img.src = src;
-                img.alt = `Avatar ${index + 1}`;
-                img.classList.add('w-16', 'h-16', 'rounded-full', 'cursor-pointer', 'hover:opacity-80', 'transition-opacity');
+                img.alt = `Avatar ${letter}`;
+                img.classList.add('w-12', 'h-12', 'rounded-full', 'cursor-pointer', 'hover:opacity-80', 'transition-opacity');
                 img.dataset.src = src;
                 UI.avatarSelection.appendChild(img);
             });
@@ -207,17 +184,9 @@
 
         async function handleAuthentication() {
             onAuthStateChanged(auth, async (user) => {
-                if (!user) {
-                    await signInAnonymously(auth).catch(err => {
-                        console.error("Auth Error", err);
-                        showAlert("Could not connect to the authentication service.");
-                    });
-                    return;
-                }
+                if (!user) { await signInAnonymously(auth).catch(err => showAlert("Could not connect to the authentication service.")); return; }
                 currentUserId = user.uid;
                 UI.currentUserIdEl.textContent = currentUserId;
-
-                // Check if user has a profile
                 const userDocRef = doc(db, "users", currentUserId);
                 const userDocSnap = await getDoc(userDocRef);
                 if (userDocSnap.exists()) {
@@ -232,10 +201,28 @@
         
         function setupEventListeners() {
             UI.saveProfileButton.addEventListener('click', saveProfile);
+            UI.avatarUploadInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    // **FIX**: Add file size check
+                    if (file.size > 1024 * 1024) { // 1MB limit
+                        showAlert("Image is too large. Please choose a file smaller than 1MB.");
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        UI.avatarPreview.src = event.target.result;
+                        document.querySelectorAll('#avatar-selection img').forEach(img => img.classList.remove('avatar-selected'));
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
             UI.avatarSelection.addEventListener('click', (e) => {
                 if (e.target.tagName === 'IMG') {
                     document.querySelectorAll('#avatar-selection img').forEach(img => img.classList.remove('avatar-selected'));
                     e.target.classList.add('avatar-selected');
+                    UI.avatarPreview.src = e.target.src;
+                    UI.avatarUploadInput.value = ''; // Clear file input if a default is selected
                 }
             });
             UI.startChatButton.addEventListener('click', initializeChat);
@@ -247,159 +234,123 @@
 
         async function saveProfile() {
             const nickname = UI.nicknameInput.value.trim();
-            const selectedAvatar = document.querySelector('.avatar-selected');
-            if (!nickname || !selectedAvatar) {
-                showAlert("Please enter a nickname and select an avatar.");
-                return;
+            if (!nickname) { showAlert("Please enter a nickname."); return; }
+            UI.saveProfileButton.disabled = true;
+            UI.saveProfileButton.textContent = 'Saving...';
+
+            // **FIX**: The avatar URL is now the base64 data URL from the preview.
+            const avatarUrl = UI.avatarPreview.src;
+
+            try {
+                currentUserProfile = { nickname, avatar: avatarUrl };
+                await setDoc(doc(db, "users", currentUserId), currentUserProfile);
+                UI.profileModal.classList.add('hidden');
+                UI.chatContainer.classList.remove('hidden');
+            } catch (error) {
+                console.error("Profile save failed:", error);
+                showAlert("Could not save profile. Please try again.");
+            } finally {
+                UI.saveProfileButton.disabled = false;
+                UI.saveProfileButton.textContent = 'Start Chatting';
             }
-            currentUserProfile = { nickname, avatar: selectedAvatar.dataset.src };
-            await setDoc(doc(db, "users", currentUserId), currentUserProfile);
-            UI.profileModal.classList.add('hidden');
-            UI.chatContainer.classList.remove('hidden');
         }
 
         async function initializeChat() {
-            const newRecipientId = UI.recipientIdInput.value.trim();
-            if (!newRecipientId || newRecipientId === currentUserId) {
-                showAlert("Please enter a valid User ID.");
-                return;
-            }
-            recipientId = newRecipientId;
+            recipientId = UI.recipientIdInput.value.trim();
+            if (!recipientId || recipientId === currentUserId) { showAlert("Please enter a valid User ID."); return; }
             if (unsubscribeFromMessages) unsubscribeFromMessages();
             
             UI.chatStatus.textContent = "Establishing secure connection...";
-            UI.messageInput.disabled = true;
-            UI.sendButton.disabled = true;
+            UI.messageInput.disabled = true; UI.sendButton.disabled = true;
 
             try {
-                // Key Exchange
                 const keyPair = await cryptoUtils.generateKeyPair();
                 const myPublicKeyJwk = await cryptoUtils.exportPublicKey(keyPair.publicKey);
                 const chatRoomId = getChatRoomId();
-                const myKeyRef = doc(db, `chats/${chatRoomId}/keys`, currentUserId);
-                await setDoc(myKeyRef, { publicKey: myPublicKeyJwk });
-
-                const recipientKeyRef = doc(db, `chats/${chatRoomId}/keys`, recipientId);
-                const unsub = onSnapshot(recipientKeyRef, async (keySnap) => {
+                await setDoc(doc(db, `chats/${chatRoomId}/keys`, currentUserId), { publicKey: myPublicKeyJwk });
+                const unsub = onSnapshot(doc(db, `chats/${chatRoomId}/keys`, recipientId), async (keySnap) => {
                     if (keySnap.exists()) {
-                        const recipientPublicKeyJwk = keySnap.data().publicKey;
-                        const recipientPublicKey = await cryptoUtils.importPublicKey(recipientPublicKeyJwk);
+                        const recipientPublicKey = await cryptoUtils.importPublicKey(keySnap.data().publicKey);
                         sharedSecret = await cryptoUtils.deriveSharedSecret(keyPair.privateKey, recipientPublicKey);
-                        
                         UI.chatStatus.textContent = `✅ Securely connected!`;
-                        UI.messageInput.disabled = false;
-                        UI.sendButton.disabled = false;
+                        UI.messageInput.disabled = false; UI.sendButton.disabled = false;
                         listenForMessages();
-                        unsub(); // Stop listening for the key once we have it
+                        unsub();
                     }
                 });
-            } catch (error) {
-                console.error("Key exchange failed:", error);
-                UI.chatStatus.textContent = "❌ Secure connection failed.";
-            }
+            } catch (error) { console.error("Key exchange failed:", error); UI.chatStatus.textContent = "❌ Secure connection failed."; }
         }
 
-        function getChatRoomId() {
-            const ids = [currentUserId, recipientId].sort();
-            return `${ids[0]}_${ids[1]}`;
-        }
+        function getChatRoomId() { return [currentUserId, recipientId].sort().join('_'); }
 
         function listenForMessages() {
-            const chatRoomId = getChatRoomId();
-            const messagesCollectionPath = `chats/${chatRoomId}/messages`;
-            const q = query(collection(db, messagesCollectionPath), orderBy("timestamp"));
-            
-            unsubscribeFromMessages = onSnapshot(q, async (querySnapshot) => {
-                const messages = [];
-                for (const doc of querySnapshot.docs) {
+            const q = query(collection(db, `chats/${getChatRoomId()}/messages`), orderBy("timestamp"));
+            unsubscribeFromMessages = onSnapshot(q, async (snapshot) => {
+                const messages = await Promise.all(snapshot.docs.map(async doc => {
                     const data = doc.data();
                     const decryptedText = await cryptoUtils.decrypt(data.text, sharedSecret);
-                    messages.push({ ...data, text: decryptedText });
-                }
+                    return { ...data, text: decryptedText };
+                }));
                 renderMessages(messages);
             }, (error) => {
-                console.error("Error listening for messages: ", error);
-                if (error.code === 'failed-precondition') {
-                    showAlert("A database index is required. Check the console for a link to create it.");
-                }
+                console.error("Message listener error:", error);
+                if (error.code === 'failed-precondition') showAlert("A database index is required. Check console for link.");
             });
+        }
+
+        function parseMarkdown(text) {
+            const escapedText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            return escapedText
+                .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+                .replace(/_(.*?)_/g, '<em>$1</em>');
         }
         
         async function renderMessages(messages) {
-            UI.messagesContainer.innerHTML = '';
-            if (messages.length === 0) {
-                 UI.messagesContainer.innerHTML = `<div class="text-center text-gray-500 m-auto">No messages yet. Say hello!</div>`;
-                 return;
-            } 
+            UI.messagesContainer.innerHTML = messages.length === 0 ? `<div class="text-center text-gray-500 m-auto">No messages yet. Say hello!</div>` : '';
+            if (messages.length === 0) return;
             for (const msg of messages) {
                 const userProfile = await getUserProfile(msg.senderId);
-                const messageContainer = document.createElement('div');
-                messageContainer.classList.add('flex', 'items-end', 'gap-2', 'mb-4');
-
-                const avatar = document.createElement('img');
-                avatar.src = userProfile.avatar;
-                avatar.classList.add('w-8', 'h-8', 'rounded-full');
-
-                const messageContent = document.createElement('div');
-                const nicknameEl = document.createElement('div');
-                nicknameEl.textContent = userProfile.nickname;
-                nicknameEl.classList.add('text-xs', 'font-bold', 'text-gray-400', 'mb-1');
-
-                const messageBubble = document.createElement('div');
-                messageBubble.textContent = msg.text;
-                messageBubble.classList.add('px-4', 'py-2', 'rounded-xl', 'max-w-xs', 'lg:max-w-md', 'break-words');
-
-                if (msg.senderId === currentUserId) {
-                    messageContainer.classList.add('justify-end');
-                    messageBubble.classList.add('bg-blue-600', 'text-white');
-                    nicknameEl.classList.add('text-right');
-                    messageContent.append(nicknameEl, messageBubble);
-                    messageContainer.append(messageContent, avatar);
-                } else {
-                    messageContainer.classList.add('justify-start');
-                    messageBubble.classList.add('bg-gray-600', 'text-gray-200');
-                    nicknameEl.classList.add('text-left');
-                    messageContent.append(nicknameEl, messageBubble);
-                    messageContainer.append(avatar, messageContent);
-                }
-                UI.messagesContainer.appendChild(messageContainer);
+                const isMe = msg.senderId === currentUserId;
+                UI.messagesContainer.innerHTML += `
+                    <div class="flex items-end gap-2 mb-4 ${isMe ? 'justify-end' : 'justify-start'}">
+                        ${!isMe ? `<img src="${userProfile.avatar}" class="w-8 h-8 rounded-full object-cover">` : ''}
+                        <div>
+                            <div class="text-xs font-bold text-gray-400 mb-1 ${isMe ? 'text-right' : 'text-left'}">${userProfile.nickname}</div>
+                            <div class="px-4 py-2 rounded-xl max-w-xs lg:max-w-md break-words ${isMe ? 'bg-blue-600 text-white' : 'bg-gray-600 text-gray-200'}">
+                                ${parseMarkdown(msg.text)}
+                            </div>
+                        </div>
+                        ${isMe ? `<img src="${userProfile.avatar}" class="w-8 h-8 rounded-full object-cover">` : ''}
+                    </div>
+                `;
             }
             UI.messagesContainer.scrollTop = UI.messagesContainer.scrollHeight;
         }
         
-        // Cache for user profiles to avoid repeated DB reads
         const profileCache = new Map();
         async function getUserProfile(userId) {
             if (profileCache.has(userId)) return profileCache.get(userId);
-            const userDocRef = doc(db, "users", userId);
-            const userDocSnap = await getDoc(userDocRef);
+            const userDocSnap = await getDoc(doc(db, "users", userId));
             if (userDocSnap.exists()) {
                 const profile = userDocSnap.data();
                 profileCache.set(userId, profile);
                 return profile;
             }
-            return { nickname: 'Unknown User', avatar: AVATARS[0] }; // Fallback
+            return { nickname: 'Unknown User', avatar: `https://placehold.co/100x100/4B5563/FFFFFF?text=?` };
         }
 
         async function sendMessage() {
             const text = UI.messageInput.value.trim();
             if (!text || !sharedSecret) return;
-            
             const encryptedText = await cryptoUtils.encrypt(text, sharedSecret);
-            const chatRoomId = getChatRoomId();
-            const messagesCollectionPath = `chats/${chatRoomId}/messages`;
-
             try {
-                await addDoc(collection(db, messagesCollectionPath), {
+                await addDoc(collection(db, `chats/${getChatRoomId()}/messages`), {
                     text: encryptedText,
                     senderId: currentUserId,
                     timestamp: serverTimestamp()
                 });
                 UI.messageInput.value = '';
-            } catch (error) {
-                console.error("Error sending message: ", error);
-                showAlert("Message could not be sent.");
-            }
+            } catch (error) { console.error("Send error:", error); showAlert("Message could not be sent."); }
         }
         
         function showAlert(message) {
